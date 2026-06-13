@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* ── Brand palette (fixed across themes) ─────────────────── */
+:root {
+  --gold:           #FFC71F;
+  --neon-green:     #00DF81;
+  --queue-sage:     #00b368;
+  --route-blue:     #5E81AC;
+  --soft-plum:      #75658A;
+  --alert-apricot:  #F4A261;
+  --critical-rose:  #C8556D;
+
+  /* legacy aliases kept so nothing breaks */
+  --copper-wire:    #FFC71F;
+  --signal-teal:    #00DF81;
+}
+
+/* ── Dark theme (default) ────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg-shell:       #032221;
+  --bg-canvas:      #042e2b;
+  --bg-card:        #0a2c29;
+  --bg-card-hover:  #0d3330;
+  --bg-input:       #042e2b;
+  --bg-muted:       #0d3330;
+  --border:         #1a4a46;
+  --border-accent:  #00DF81;
+  --text-primary:   #FFC71F;
+  --text-body:      #FFFFFF;
+  --text-muted:     #FFFFFF;
+  --text-faint:     #FFFFFF;
+  --fog-line:       #FFFFFF;
+  --scrollbar-track:#0d3330;
+  --thread-bg:      rgba(13,51,48,0.8);
+}
+
+/* ── Light theme ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-shell:       #ebf7ee;
+  --bg-canvas:      #f5fbf6;
+  --bg-card:        #c8e6ce;
+  --bg-card-hover:  #b8dfc3;
+  --bg-input:       #dff0e4;
+  --bg-muted:       #b8dfc3;
+  --border:         #8ecf9c;
+  --border-accent:  #00DF81;
+  --text-primary:   #032221;
+  --text-body:      #032221;
+  --text-muted:     #032221;
+  --text-faint:     #032221;
+  --fog-line:       #032221;
+  --scrollbar-track:#dff0e4;
+  --thread-bg:      rgba(186,228,200,0.5);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background-color: var(--bg-shell);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.font-syne    { font-family: var(--font-syne), system-ui, sans-serif; }
+.font-dm-mono { font-family: var(--font-dm-mono), "Courier New", monospace; }
+
+.btn-clip {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb  { background: var(--neon-green); border-radius: 2px; }
+
+.consensus-glow {
+  box-shadow: 0 0 0 1px rgba(0,223,129,0.25), 0 4px 24px rgba(0,223,129,0.08);
+}
+
+.gold-glow {
+  box-shadow: 0 0 0 1px rgba(255,199,31,0.2), 0 4px 24px rgba(255,199,31,0.06);
+}
+
+.signal-slot:hover {
+  background: rgba(0,223,129,0.06);
+  border-color: var(--neon-green);
+}
+
+.triageon-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-body);
+}
+.triageon-input::placeholder { color: var(--text-faint); }
+.triageon-input:focus { border-color: var(--neon-green); outline: none; }
+.triageon-input option { background: var(--bg-canvas); color: var(--text-body); }
+
+.thread-slab {
+  background: var(--thread-bg);
+  border-left: 2px solid var(--neon-green);
+}
+
+/* ── Animated mesh gradient ──────────────────────────────── */
+@keyframes meshShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes floatUp {
+  0%   { opacity: 0; transform: translateY(32px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGreen {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@keyframes scanLine {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.mesh-hero {
+  background: linear-gradient(
+    135deg,
+    #021a18 0%,
+    #032221 25%,
+    #043d38 50%,
+    #032221 75%,
+    #021a18 100%
+  );
+  background-size: 400% 400%;
+  animation: meshShift 18s ease infinite;
+}
+
+.float-in {
+  animation: floatUp 0.7s ease forwards;
+}
+
+.pulse-green {
+  animation: pulseGreen 2s ease infinite;
+}
+
+/* ── Light mode hero overrides ───────────────────────────── */
+[data-theme="light"] .mesh-hero {
+  background: linear-gradient(135deg, #0d2b1f 0%, #1a3d2e 25%, #0f3324 50%, #1a3d2e 75%, #0d2b1f 100%);
+  background-size: 400% 400%;
+  animation: meshShift 18s ease infinite;
+}
+
+[data-theme="light"] .hero-vignette {
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, #ebf7ee 100%) !important;
+}
+
+.hero-dark-spot {
+  background: radial-gradient(ellipse 75% 60% at 50% 45%, rgba(2, 20, 18, 0.72) 0%, transparent 70%);
+}
+
+[data-theme="light"] .hero-bottom-fade {
+  background: linear-gradient(to bottom, transparent, #ebf7ee) !important;
+}
