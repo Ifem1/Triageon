@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ChevronRight, CheckCircle2, XCircle, Zap, Shield, Clock, TrendingUp } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NodeGraph } from "@/components/ui/NodeGraph";
+import { Logo, LogoMark } from "@/components/ui/Logo";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
 import dynamic from "next/dynamic";
 
@@ -54,12 +55,7 @@ export default function LandingPage() {
           className="relative z-10 flex items-center justify-between px-8 py-5"
           style={{ borderBottom: "1px solid rgba(0,223,129,0.12)" }}
         >
-          <div className="flex items-center gap-3">
-            <Zap className="w-5 h-5" style={{ color: "#00DF81" }} />
-            <span className="font-syne font-bold text-xl tracking-tight" style={{ color: "var(--text-primary)" }}>
-              Triageon
-            </span>
-          </div>
+          <Logo size={34} showWordmark={true} />
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -454,8 +450,7 @@ export default function LandingPage() {
         style={{ background: "var(--bg-canvas)", borderTop: "1px solid var(--border)" }}
       >
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Zap className="w-3.5 h-3.5" style={{ color: "#00DF81" }} />
-          <span className="font-syne font-bold text-sm" style={{ color: "var(--text-primary)" }}>Triageon</span>
+          <Logo size={22} showWordmark={true} />
         </div>
         <p className="text-xs font-dm-mono" style={{ color: "var(--text-faint)" }}>
           Consensus support for hard cases · GenLayer Studionet · Human teams remain responsible for final handling

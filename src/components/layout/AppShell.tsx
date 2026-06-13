@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import {
   LayoutDashboard, FolderOpen, FileText,
-  Terminal, Settings, ChevronRight, AlertCircle, Zap,
+  Terminal, Settings, ChevronRight, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isContractConfigured } from "@/lib/genlayer/config";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Logo } from "@/components/ui/Logo";
 
 const NAV = [
   { href: "/app",            label: "Desk",     icon: LayoutDashboard, exact: true },
@@ -37,11 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         style={{ background: "var(--bg-shell)", borderBottom: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" style={{ color: "var(--signal-teal)" }} />
-            <span className="font-syne font-bold text-lg tracking-tight" style={{ color: "var(--text-primary)" }}>
-              Triageon
-            </span>
+          <Link href="/">
+            <Logo size={28} showWordmark={true} />
           </Link>
 
           <div className="flex items-center gap-4 text-xs font-dm-mono">
