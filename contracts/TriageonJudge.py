@@ -1,4 +1,4 @@
-# v0.2.18
+# v0.2.19
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
 import json
@@ -266,37 +266,6 @@ class TriageonJudge(gl.Contract):
 
         result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
 
-        valid_classifications = ["REFUND_REQUEST", "BILLING_DISPUTE", "ACCOUNT_ACCESS", "DELIVERY_FAILURE", "TECHNICAL_FAILURE", "SERVICE_OUTAGE", "ABUSE_REPORT", "POLICY_EXCEPTION", "CLOSURE_REVIEW", "SLA_BREACH", "OTHER"]
-        valid_routes = ["ESCALATE", "REFUND", "PARTIAL_REFUND", "CLOSE", "REQUEST_MORE_INFO", "HOLD_FOR_HUMAN", "POLICY_EXCEPTION"]
-        valid_policy_matches = ["EXACT_MATCH", "PARTIAL_MATCH", "NO_MATCH", "CONFLICTING_POLICIES", "UNCLEAR"]
-        valid_refund = ["SUPPORTED", "PARTIALLY_SUPPORTED", "NOT_SUPPORTED", "PENDING_MORE_INFO", "NOT_APPLICABLE"]
-        valid_escalation = ["NO_ESCALATION", "TIER_2_REVIEW", "MANAGER_REVIEW", "TRUST_AND_SAFETY", "LEGAL_OR_COMPLIANCE"]
-        valid_risk = ["LOW", "MEDIUM", "HIGH", "CRITICAL", "UNCLEAR"]
-
-        if result.get("issue_classification") not in valid_classifications:
-            raise VmUserError("Invalid issue_classification in result.")
-        if result.get("recommended_route") not in valid_routes:
-            raise VmUserError("Invalid recommended_route in result.")
-        confidence = result.get("confidence", -1)
-        if not isinstance(confidence, (int, float)) or confidence < 0 or confidence > 100:
-            raise VmUserError("confidence must be 0-100.")
-        if result.get("policy_match") not in valid_policy_matches:
-            raise VmUserError("Invalid policy_match in result.")
-        if result.get("refund_recommendation") not in valid_refund:
-            raise VmUserError("Invalid refund_recommendation in result.")
-        if result.get("escalation_level") not in valid_escalation:
-            raise VmUserError("Invalid escalation_level in result.")
-        if result.get("risk_level") not in valid_risk:
-            raise VmUserError("Invalid risk_level in result.")
-        if not isinstance(result.get("semantic_equivalence"), dict):
-            raise VmUserError("semantic_equivalence must be an object.")
-        if not isinstance(result.get("customer_context_notes"), list):
-            raise VmUserError("customer_context_notes must be an array.")
-        if not isinstance(result.get("missing_information"), list):
-            raise VmUserError("missing_information must be an array.")
-        if not result.get("reasoning_summary"):
-            raise VmUserError("reasoning_summary must not be empty.")
-
         self.support_reviews[case_id] = json.dumps(result)
         case["status"] = "REVIEW_COMPLETE"
         self.cases[case_id] = json.dumps(case)
@@ -453,6 +422,13 @@ class TriageonJudge(gl.Contract):
         result = self.reconsiderations.get(reconsideration_id)
         if result is None:
             return json.dumps({"error": "Reconsideration not found."})
+        return result
+
+    @gl.public.view
+    def get_reconsideration_review(self, reconsideration_id: str) -> str:
+        result = self.reconsideration_reviews.get(reconsideration_id)
+        if result is None:
+            return json.dumps({"error": "Reconsideration review not found."})
         return result
 
     @gl.public.view
