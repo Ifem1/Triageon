@@ -7,7 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { ContractNotice } from "@/components/ui/ContractNotice";
 import { callContractWrite, emitLog } from "@/lib/genlayer/client";
-import { isContractConfigured } from "@/lib/genlayer/config";
+import { isContractConfigured, isContractOwner } from "@/lib/genlayer/config";
 import { generateId, formatDate } from "@/lib/utils";
 import type { PolicyPacket } from "@/lib/genlayer/types";
 import { FileText, Plus, ChevronRight, Hash } from "lucide-react";
@@ -32,12 +32,18 @@ export default function PolicyLibrary() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<PolicyPacket | null>(null);
+  const canManagePolicies = isContractOwner(walletAddress);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   async function onSubmit(data: FormData) {
+    if (!canManagePolicies) {
+      setError("Only the contract owner can create policy packets.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     const policyId = generateId("POLICY");
@@ -71,15 +77,25 @@ export default function PolicyLibrary() {
           <h1 className="font-syne text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Policy Library</h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-faint)" }}>Support policy packets used in GenLayer reviews</p>
         </div>
-        <Button variant="secondary" onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-3.5 h-3.5" />
-          New Policy Packet
-        </Button>
+        {canManagePolicies && (
+          <Button variant="secondary" onClick={() => setShowForm(!showForm)}>
+            <Plus className="w-3.5 h-3.5" />
+            New Policy Packet
+          </Button>
+        )}
       </div>
 
       {!isContractConfigured() && <div className="mb-6"><ContractNotice /></div>}
 
-      {showForm && (
+      {!canManagePolicies && (
+        <div className="rounded-sm p-4 mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--text-faint)" }}>
+            Policy packets are owner-managed. You can still open cases and attach available policies, but only the contract owner can publish new policies on-chain.
+          </p>
+        </div>
+      )}
+
+      {showForm && canManagePolicies && (
         <div className="rounded-sm p-6 mb-6" style={{ background: "var(--bg-card)", border: "1px solid rgba(183,106,60,0.3)" }}>
           <h2 className="font-syne text-base font-semibold mb-5" style={{ color: "var(--copper-wire)" }}>New Policy Packet</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -123,10 +139,12 @@ export default function PolicyLibrary() {
           <div className="col-span-3 flex flex-col items-center justify-center py-24 text-center">
             <FileText className="w-10 h-10 mb-4" style={{ color: "var(--border)" }} />
             <p className="mb-4" style={{ color: "var(--text-faint)" }}>No policy packets yet.</p>
-            <Button variant="secondary" onClick={() => setShowForm(true)}>
-              <Plus className="w-3.5 h-3.5" />
-              Create First Policy
-            </Button>
+            {canManagePolicies && (
+              <Button variant="secondary" onClick={() => setShowForm(true)}>
+                <Plus className="w-3.5 h-3.5" />
+                Create First Policy
+              </Button>
+            )}
           </div>
         ) : (
           policies.map((p) => (

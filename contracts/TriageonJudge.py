@@ -1,4 +1,4 @@
-# v0.2.19
+# v0.2.20
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
 import json
@@ -42,17 +42,19 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def create_policy_packet(self, policy_id: str, policy_json: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
+        if gl.message.sender_address != self.owner:
+            raise gl.vm.UserError("Only owner can create policy packets.")
         if not policy_id or len(policy_id) > 64:
-            raise VmUserError("Invalid policy_id.")
+            raise gl.vm.UserError("Invalid policy_id.")
         if self.policy_packets.get(policy_id) is not None:
-            raise VmUserError("Policy packet already exists.")
+            raise gl.vm.UserError("Policy packet already exists.")
         try:
             data = json.loads(policy_json)
         except Exception:
-            raise VmUserError("policy_json must be valid JSON.")
+            raise gl.vm.UserError("policy_json must be valid JSON.")
         if "name" not in data:
-            raise VmUserError("policy_json must include 'name'.")
+            raise gl.vm.UserError("policy_json must include 'name'.")
         self.policy_packets[policy_id] = policy_json
         self.policy_count = u256(int(self.policy_count) + 1)
         stats = json.loads(self.protocol_stats["global"])
@@ -62,18 +64,18 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def open_case(self, case_id: str, case_json: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if not case_id or len(case_id) > 64:
-            raise VmUserError("Invalid case_id.")
+            raise gl.vm.UserError("Invalid case_id.")
         if self.cases.get(case_id) is not None:
-            raise VmUserError("Case already exists.")
+            raise gl.vm.UserError("Case already exists.")
         try:
             data = json.loads(case_json)
         except Exception:
-            raise VmUserError("case_json must be valid JSON.")
+            raise gl.vm.UserError("case_json must be valid JSON.")
         for field in ["ticket_title", "ticket_text", "customer_id"]:
             if field not in data:
-                raise VmUserError("case_json missing required field: " + field)
+                raise gl.vm.UserError("case_json missing required field: " + field)
         data["status"] = "CASE_OPENED"
         data["case_id"] = case_id
         self.cases[case_id] = json.dumps(data)
@@ -90,13 +92,13 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def attach_case_context(self, case_id: str, context_json: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
         try:
             json.loads(context_json)
         except Exception:
-            raise VmUserError("context_json must be valid JSON.")
+            raise gl.vm.UserError("context_json must be valid JSON.")
         self.case_contexts[case_id] = context_json
         case = json.loads(self.cases[case_id])
         if case.get("status") == "CASE_OPENED":
@@ -106,9 +108,9 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def mark_ready_for_review(self, case_id: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
         case = json.loads(self.cases[case_id])
         case["status"] = "READY_FOR_TRIAGE_REVIEW"
         self.cases[case_id] = json.dumps(case)
@@ -116,25 +118,25 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def open_reconsideration(self, reconsideration_id: str, case_id: str, reconsideration_json: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
         try:
             json.loads(reconsideration_json)
         except Exception:
-            raise VmUserError("reconsideration_json must be valid JSON.")
+            raise gl.vm.UserError("reconsideration_json must be valid JSON.")
         self.reconsiderations[reconsideration_id] = reconsideration_json
 
     @gl.public.write
     def finalize_case(self, case_id: str, final_action_json: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
         try:
             json.loads(final_action_json)
         except Exception:
-            raise VmUserError("final_action_json must be valid JSON.")
+            raise gl.vm.UserError("final_action_json must be valid JSON.")
         case = json.loads(self.cases[case_id])
         case["status"] = "FINALIZED"
         case["final_action"] = final_action_json
@@ -143,27 +145,27 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def add_reviewer(self, reviewer: Address) -> None:
         if gl.message.sender_address != self.owner:
-            raise VmUserError("Only owner can perform this action.")
+            raise gl.vm.UserError("Only owner can perform this action.")
         self.reviewers[str(reviewer)] = json.dumps({"active": True})
 
     @gl.public.write
     def remove_reviewer(self, reviewer: Address) -> None:
         if gl.message.sender_address != self.owner:
-            raise VmUserError("Only owner can perform this action.")
+            raise gl.vm.UserError("Only owner can perform this action.")
         if self.reviewers.get(str(reviewer)) is None:
-            raise VmUserError("Reviewer not found.")
+            raise gl.vm.UserError("Reviewer not found.")
         self.reviewers[str(reviewer)] = json.dumps({"active": False})
 
     @gl.public.write
     def pause_protocol(self) -> None:
         if gl.message.sender_address != self.owner:
-            raise VmUserError("Only owner can perform this action.")
+            raise gl.vm.UserError("Only owner can perform this action.")
         self.paused = True
 
     @gl.public.write
     def unpause_protocol(self) -> None:
         if gl.message.sender_address != self.owner:
-            raise VmUserError("Only owner can perform this action.")
+            raise gl.vm.UserError("Only owner can perform this action.")
         self.paused = False
 
     # ── GenLayer intelligent functions ────────────────────────────────
@@ -171,15 +173,15 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def review_support_case(self, case_id: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         sender = str(gl.message.sender_address)
         is_owner = gl.message.sender_address == self.owner
         reviewer_raw = self.reviewers.get(sender)
         is_reviewer = reviewer_raw is not None and json.loads(reviewer_raw).get("active", False)
         if not is_owner and not is_reviewer:
-            raise VmUserError("Only authorised reviewers can trigger consensus review.")
+            raise gl.vm.UserError("Only authorised reviewers can trigger consensus review.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
 
         case = json.loads(self.cases[case_id])
         context_raw = self.case_contexts.get(case_id)
@@ -250,21 +252,20 @@ class TriageonJudge(gl.Contract):
             '"reasoning_summary":"<summary>"}'
         )
 
-        def leader_fn():
-            return gl.nondet.exec_prompt(prompt, response_format="json")
+        def get_input() -> str:
+            return prompt
 
-        def validator_fn(leaders_res) -> bool:
-            if not isinstance(leaders_res, gl.vm.Return):
-                return False
-            my_result = leader_fn()
-            leader_data = leaders_res.calldata
-            return (
-                my_result.get("recommended_route") == leader_data.get("recommended_route")
-                and my_result.get("issue_classification") == leader_data.get("issue_classification")
-                and my_result.get("risk_level") == leader_data.get("risk_level")
-            )
+        raw_result = gl.eq_principle.prompt_non_comparative(
+            get_input,
+            task="Produce a structured JSON support triage review for this case.",
+            criteria=(
+                "The response must be valid JSON with all requested fields, must choose values from "
+                "the enumerations in the prompt, must be grounded in the ticket and policy text, must "
+                "not invent missing facts, and must provide useful reasoning and next actions."
+            ),
+        )
 
-        result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        result = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
 
         self.support_reviews[case_id] = json.dumps(result)
         case["status"] = "REVIEW_COMPLETE"
@@ -277,16 +278,16 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def review_reconsideration(self, reconsideration_id: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         sender = str(gl.message.sender_address)
         is_owner = gl.message.sender_address == self.owner
         reviewer_raw = self.reviewers.get(sender)
         is_reviewer = reviewer_raw is not None and json.loads(reviewer_raw).get("active", False)
         if not is_owner and not is_reviewer:
-            raise VmUserError("Only authorised reviewers can trigger reconsideration.")
+            raise gl.vm.UserError("Only authorised reviewers can trigger reconsideration.")
         recon_raw = self.reconsiderations.get(reconsideration_id)
         if recon_raw is None:
-            raise VmUserError("Reconsideration not found.")
+            raise gl.vm.UserError("Reconsideration not found.")
 
         recon = json.loads(recon_raw)
         case_id = recon.get("case_id", "")
@@ -302,27 +303,31 @@ class TriageonJudge(gl.Contract):
             '"reconsideration_outcome": "<UPHELD|MODIFIED|REVERSED>"'
         )
 
-        def leader_fn():
-            return gl.nondet.exec_prompt(prompt, response_format="json")
+        def get_input() -> str:
+            return prompt
 
-        def validator_fn(leaders_res) -> bool:
-            if not isinstance(leaders_res, gl.vm.Return):
-                return False
-            my_result = leader_fn()
-            return my_result.get("reconsideration_outcome") == leaders_res.calldata.get("reconsideration_outcome")
+        raw_result = gl.eq_principle.prompt_non_comparative(
+            get_input,
+            task="Produce a structured JSON reconsideration review for this case.",
+            criteria=(
+                "The response must be valid JSON, must include reconsideration_outcome as UPHELD, "
+                "MODIFIED, or REVERSED, must be grounded in the original review and new evidence, "
+                "and must explain the reasoning."
+            ),
+        )
 
-        result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        result = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
         self.reconsideration_reviews[reconsideration_id] = json.dumps(result)
         self.support_reviews[case_id] = json.dumps(result)
 
     @gl.public.write
     def assess_policy_equivalence(self, case_id: str, policy_id: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
         if self.policy_packets.get(policy_id) is None:
-            raise VmUserError("Policy not found.")
+            raise gl.vm.UserError("Policy not found.")
 
         case = json.loads(self.cases[case_id])
         policy = json.loads(self.policy_packets[policy_id])
@@ -334,16 +339,20 @@ class TriageonJudge(gl.Contract):
             'Respond as JSON: {"matched_policy":"<rule name or none>","match_strength":"<STRONG|MODERATE|WEAK|NONE>","reason":"<explanation>"}'
         )
 
-        def leader_fn():
-            return gl.nondet.exec_prompt(prompt, response_format="json")
+        def get_input() -> str:
+            return prompt
 
-        def validator_fn(leaders_res) -> bool:
-            if not isinstance(leaders_res, gl.vm.Return):
-                return False
-            my_result = leader_fn()
-            return my_result.get("match_strength") == leaders_res.calldata.get("match_strength")
+        raw_result = gl.eq_principle.prompt_non_comparative(
+            get_input,
+            task="Assess whether the support case matches a policy rule.",
+            criteria=(
+                "The response must be valid JSON with matched_policy, match_strength, and reason. "
+                "match_strength must be STRONG, MODERATE, WEAK, or NONE, and the reason must be "
+                "grounded in the ticket and policy text."
+            ),
+        )
 
-        result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        result = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
         existing_raw = self.support_reviews.get(case_id)
         existing = json.loads(existing_raw) if existing_raw else {}
         existing["semantic_equivalence"] = result
@@ -352,9 +361,9 @@ class TriageonJudge(gl.Contract):
     @gl.public.write
     def assess_refund_reasonableness(self, case_id: str) -> None:
         if self.paused:
-            raise VmUserError("Protocol is paused.")
+            raise gl.vm.UserError("Protocol is paused.")
         if self.cases.get(case_id) is None:
-            raise VmUserError("Case not found.")
+            raise gl.vm.UserError("Case not found.")
 
         case = json.loads(self.cases[case_id])
         context_raw = self.case_contexts.get(case_id)
@@ -371,16 +380,21 @@ class TriageonJudge(gl.Contract):
             'Respond as JSON: {"refund_recommendation":"<SUPPORTED|PARTIALLY_SUPPORTED|NOT_SUPPORTED|PENDING_MORE_INFO|NOT_APPLICABLE>","reasoning":"<explanation>"}'
         )
 
-        def leader_fn():
-            return gl.nondet.exec_prompt(prompt, response_format="json")
+        def get_input() -> str:
+            return prompt
 
-        def validator_fn(leaders_res) -> bool:
-            if not isinstance(leaders_res, gl.vm.Return):
-                return False
-            my_result = leader_fn()
-            return my_result.get("refund_recommendation") == leaders_res.calldata.get("refund_recommendation")
+        raw_result = gl.eq_principle.prompt_non_comparative(
+            get_input,
+            task="Assess whether a refund is reasonable for this support case.",
+            criteria=(
+                "The response must be valid JSON with refund_recommendation and reasoning. "
+                "refund_recommendation must be one of SUPPORTED, PARTIALLY_SUPPORTED, NOT_SUPPORTED, "
+                "PENDING_MORE_INFO, or NOT_APPLICABLE, and the reasoning must be grounded in the "
+                "ticket, customer context, and refund policy."
+            ),
+        )
 
-        result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        result = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
         existing_raw = self.support_reviews.get(case_id)
         existing = json.loads(existing_raw) if existing_raw else {}
         existing["refund_recommendation"] = result.get("refund_recommendation", "PENDING_MORE_INFO")
@@ -388,6 +402,15 @@ class TriageonJudge(gl.Contract):
         self.support_reviews[case_id] = json.dumps(existing)
 
     # ── View functions ────────────────────────────────────────────────
+
+    @gl.public.view
+    def get_owner(self) -> str:
+        return str(self.owner)
+
+    @gl.public.view
+    def get_reviewer(self, reviewer: Address) -> str:
+        result = self.reviewers.get(str(reviewer))
+        return result if result else json.dumps({"active": False})
 
     @gl.public.view
     def get_case(self, case_id: str) -> str:

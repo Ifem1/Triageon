@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { cn, riskBg, statusColor, statusLabel, formatDate, routeColor } from "@/lib/utils";
+import { isSupportReviewResult } from "@/lib/genlayer/client";
 import { ChevronRight, FolderOpen, Search } from "lucide-react";
 import { useState } from "react";
 
@@ -81,7 +82,7 @@ export default function AllCases() {
                     {c.risk_level}
                   </span>
                 )}
-                {c.review_result && (
+                {isSupportReviewResult(c.review_result) && (
                   <span className={cn("text-[9px] px-1.5 py-0.5 rounded-sm font-dm-mono font-bold", routeColor(c.review_result.recommended_route))}>
                     {c.review_result.recommended_route.replace(/_/g, " ")}
                   </span>

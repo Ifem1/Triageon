@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { ConsensusPlateBig } from "@/components/cases/ConsensusPlateBig";
 import { WhyGenLayer } from "@/components/cases/WhyGenLayer";
+import { isSupportReviewResult } from "@/lib/genlayer/client";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -28,7 +29,7 @@ export default function CaseReview() {
         </div>
       </div>
 
-      {c.review_result ? (
+      {isSupportReviewResult(c.review_result) ? (
         <div className="space-y-5">
           <ConsensusPlateBig result={c.review_result} txHash={c.tx_hash} />
           <WhyGenLayer />

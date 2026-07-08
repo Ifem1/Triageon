@@ -6,11 +6,15 @@ import {
   CONTRACT_OWNER_ADDRESS,
   GENLAYER_STUDIONET,
   isContractConfigured,
-  isContractOwner,
 } from "@/lib/genlayer/config";
 import { ContractNotice } from "@/components/ui/ContractNotice";
-import { callContractWrite, emitLog } from "@/lib/genlayer/client";
-import { useState } from "react";
+import {
+  callContractWrite,
+  emitLog,
+  getContractOwnerFromContract,
+  getReviewerStatusFromContract,
+} from "@/lib/genlayer/client";
+import { useEffect, useState } from "react";
 import { Settings, Shield, Zap, ExternalLink } from "lucide-react";
 
 export default function SettingsPage() {
@@ -19,7 +23,48 @@ export default function SettingsPage() {
   const [reviewerAddr, setReviewerAddr] = useState("");
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState("");
-  const canManageReviewers = isContractOwner(walletAddress);
+  const [contractOwner, setContractOwner] = useState("");
+  const [isReviewer, setIsReviewer] = useState(false);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const ownerAddress = contractOwner || CONTRACT_OWNER_ADDRESS;
+  const canManageReviewers =
+    Boolean(ownerAddress && walletAddress) &&
+    ownerAddress.toLowerCase() === walletAddress.toLowerCase();
+  const roleLabel = canManageReviewers
+    ? "Owner"
+    : isReviewer
+      ? "Authorized reviewer"
+      : "Not authorized reviewer";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRole() {
+      if (!walletAddress || !isContractConfigured()) {
+        setContractOwner("");
+        setIsReviewer(false);
+        return;
+      }
+
+      setRoleLoading(true);
+      const [owner, reviewer] = await Promise.all([
+        getContractOwnerFromContract(),
+        getReviewerStatusFromContract(walletAddress),
+      ]);
+
+      if (!cancelled) {
+        setContractOwner(owner);
+        setIsReviewer(reviewer);
+        setRoleLoading(false);
+      }
+    }
+
+    loadRole();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress]);
 
   function saveWallet() {
     setWalletAddress(addr.trim());
@@ -85,6 +130,9 @@ export default function SettingsPage() {
             Only reviewers and the contract owner can trigger START CONSENSUS REVIEW.
             Add authorised reviewer addresses here.
           </p>
+          <p className="text-xs mb-3 font-dm-mono" style={{ color: "var(--signal-teal)" }}>
+            Current wallet: {roleLoading ? "Checking..." : roleLabel}
+          </p>
           <div className="flex gap-3">
             <input
               type="text"
@@ -107,7 +155,12 @@ export default function SettingsPage() {
               <h2 className="font-syne text-sm font-semibold" style={{ color: "var(--text-body)" }}>Reviewer Access</h2>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: "var(--text-faint)" }}>
-              Reviewer management is owner-only. This wallet can request consensus reviews only after the owner authorises it.
+              Current wallet: <span className="font-dm-mono" style={{ color: isReviewer ? "var(--signal-teal)" : "var(--alert-apricot)" }}>
+                {roleLoading ? "Checking..." : roleLabel}
+              </span>
+            </p>
+            <p className="text-xs leading-relaxed mt-3" style={{ color: "var(--text-faint)" }}>
+              Reviewer management is owner-only. Authorized reviewers can request consensus reviews, but cannot add or remove reviewers.
             </p>
             {!CONTRACT_OWNER_ADDRESS && (
               <p className="text-xs mt-3" style={{ color: "var(--alert-apricot)" }}>

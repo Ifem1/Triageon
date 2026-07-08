@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { GENLAYER_STUDIONET, isContractConfigured } from "@/lib/genlayer/config";
 import { Trash2, Terminal, ExternalLink, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isSupportReviewResult } from "@/lib/genlayer/client";
 
 const TAG_COLORS: Record<string, string> = {
   CASE_OPENED:       "var(--route-blue)",
@@ -25,11 +26,12 @@ export default function ReviewConsole() {
   const { consoleLogs, clearLogs, cases } = useStore();
 
   const openCases = cases.length;
-  const reviewedCases = cases.filter((c) => c.review_result).length;
+  const reviewedCases = cases.filter((c) => isSupportReviewResult(c.review_result)).length;
   const routeEntries = cases
-    .filter((c) => c.review_result)
     .reduce((acc, c) => {
-      const route = c.review_result!.recommended_route;
+      if (!isSupportReviewResult(c.review_result)) return acc;
+
+      const route = c.review_result.recommended_route;
       acc[route] = (acc[route] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

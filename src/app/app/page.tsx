@@ -6,6 +6,7 @@ import { cn, statusColor, statusLabel, timeAgo, routeColor, riskBg } from "@/lib
 import { ChevronRight, FolderOpen, Zap, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 import { isContractConfigured } from "@/lib/genlayer/config";
 import { ContractNotice } from "@/components/ui/ContractNotice";
+import { isSupportReviewResult } from "@/lib/genlayer/client";
 import type { SupportCase } from "@/lib/genlayer/types";
 
 export default function EscalationDesk() {
@@ -13,7 +14,7 @@ export default function EscalationDesk() {
 
   const open      = cases.filter(c => ["CASE_OPENED","POLICY_ATTACHED","READY_FOR_TRIAGE_REVIEW"].includes(c.status));
   const reviewing = cases.filter(c => c.status === "REVIEW_IN_PROGRESS");
-  const complete  = cases.filter(c => c.status === "REVIEW_COMPLETE");
+  const complete  = cases.filter(c => c.status === "REVIEW_COMPLETE" && isSupportReviewResult(c.review_result));
   const finalized = cases.filter(c => c.status === "FINALIZED");
   const slaRisk   = cases.filter(c => c.sla_state !== "OK");
 
@@ -109,7 +110,7 @@ function Section({ title, cases, accentColor }: { title: string; cases: SupportC
             </div>
             <p className="text-sm font-medium mb-1 leading-tight" style={{ color: "var(--text-primary)" }}>{c.ticket_title}</p>
             <p className="text-xs mb-3" style={{ color: "var(--text-faint)" }}>{c.issue_category?.replace(/_/g," ")}</p>
-            {c.review_result && (
+            {isSupportReviewResult(c.review_result) && (
               <span className={cn("text-[10px] px-2 py-0.5 rounded-sm font-dm-mono font-bold", routeColor(c.review_result.recommended_route))}>
                 → {c.review_result.recommended_route.replace(/_/g," ")}
               </span>

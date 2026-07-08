@@ -9,10 +9,15 @@ import { Button } from "@/components/ui/Button";
 import { ConsensusPlateBig } from "@/components/cases/ConsensusPlateBig";
 import { WhyGenLayer } from "@/components/cases/WhyGenLayer";
 import {
-  callContractWrite, callContractRead, emitLog, getCaseFromContract, waitForTransaction
+  callContractWrite,
+  callContractRead,
+  emitLog,
+  getCaseFromContract,
+  getReviewerStatusFromContract,
+  isSupportReviewResult,
+  waitForTransaction
 } from "@/lib/genlayer/client";
-import { isContractConfigured } from "@/lib/genlayer/config";
-import type { SupportReviewResult } from "@/lib/genlayer/types";
+import { isContractConfigured, isContractOwner } from "@/lib/genlayer/config";
 import {
   ChevronLeft, AlertCircle, MessageSquare, FileText,
   Clock, User, Package, Zap
@@ -31,6 +36,8 @@ export default function CaseDetail() {
   const [finalAction, setFinalAction] = useState("");
   const [error, setError] = useState("");
   const [hydrating, setHydrating] = useState(false);
+  const [isReviewer, setIsReviewer] = useState(false);
+  const [checkingReviewer, setCheckingReviewer] = useState(false);
 
   useEffect(() => {
     if (c || !isContractConfigured()) return;
@@ -56,6 +63,31 @@ export default function CaseDetail() {
     };
   }, [addCase, c, caseId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReviewerStatus() {
+      if (!walletAddress || !isContractConfigured()) {
+        setIsReviewer(false);
+        setCheckingReviewer(false);
+        return;
+      }
+
+      setCheckingReviewer(true);
+      const reviewer = await getReviewerStatusFromContract(walletAddress);
+      if (!cancelled) {
+        setIsReviewer(reviewer);
+        setCheckingReviewer(false);
+      }
+    }
+
+    loadReviewerStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress]);
+
   if (!c) {
     return (
       <div className="p-6">
@@ -68,6 +100,11 @@ export default function CaseDetail() {
 
   async function startConsensusReview() {
     if (!c) return;
+    if (!isContractOwner(walletAddress) && !isReviewer) {
+      setError("Only the contract owner or an authorized reviewer can start consensus review.");
+      return;
+    }
+
     setReviewLoading(true);
     setError("");
     try {
@@ -83,7 +120,10 @@ export default function CaseDetail() {
         pushLog(emitLog("TX", `Transaction submitted: ${tx}`));
         await waitForTransaction(tx);
         const raw = await callContractRead("get_support_review", [caseId]);
-        const result: SupportReviewResult = JSON.parse(raw);
+        const result: unknown = JSON.parse(raw);
+        if (!isSupportReviewResult(result)) {
+          throw new Error("Consensus completed without a valid review result. Check the explorer transaction and retry.");
+        }
         updateCase(caseId, { status: "REVIEW_COMPLETE", review_result: result, tx_hash: tx });
         pushLog(emitLog("CONSENSUS", `Route: ${result.recommended_route}`));
         pushLog(emitLog("ACTION", result.recommended_next_actions?.[0] || "Review complete"));
@@ -119,6 +159,8 @@ export default function CaseDetail() {
   }
 
   const canReview = ["READY_FOR_TRIAGE_REVIEW", "POLICY_ATTACHED", "CASE_OPENED"].includes(c.status);
+  const canTriggerReview = canReview && (isContractOwner(walletAddress) || isReviewer);
+  const reviewResult = isSupportReviewResult(c.review_result) ? c.review_result : null;
 
   return (
     <div className="p-6 max-w-5xl">
@@ -154,7 +196,12 @@ export default function CaseDetail() {
           </div>
           <div className="flex gap-2 ml-4 flex-shrink-0">
             {canReview && (
-              <Button variant="primary" loading={reviewLoading} onClick={startConsensusReview}>
+              <Button
+                variant="primary"
+                loading={reviewLoading}
+                disabled={!canTriggerReview || checkingReviewer}
+                onClick={startConsensusReview}
+              >
                 ↳ START CONSENSUS REVIEW
               </Button>
             )}
@@ -176,6 +223,15 @@ export default function CaseDetail() {
         <div className="mb-5 flex items-start gap-2 rounded-sm px-4 py-3" style={{ background: "rgba(200,85,109,0.1)", border: "1px solid rgba(200,85,109,0.3)" }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--critical-rose)" }} />
           <p className="text-sm" style={{ color: "var(--critical-rose)" }}>{error}</p>
+        </div>
+      )}
+
+      {canReview && !canTriggerReview && !checkingReviewer && (
+        <div className="mb-5 flex items-start gap-2 rounded-sm px-4 py-3" style={{ background: "rgba(216,211,200,0.05)", border: "1px solid var(--border)" }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--alert-apricot)" }} />
+          <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+            This wallet can open cases, but only the contract owner or an authorized reviewer can start consensus review.
+          </p>
         </div>
       )}
 
@@ -204,8 +260,8 @@ export default function CaseDetail() {
           </div>
 
           {/* Consensus Plate */}
-          {c.review_result && (
-            <ConsensusPlateBig result={c.review_result} txHash={c.tx_hash} />
+          {reviewResult && (
+            <ConsensusPlateBig result={reviewResult} txHash={c.tx_hash} />
           )}
 
           {/* Action Route */}

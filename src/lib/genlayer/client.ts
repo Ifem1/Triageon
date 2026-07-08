@@ -179,9 +179,41 @@ export async function getReviewFromContract(caseId: string): Promise<SupportRevi
   try {
     const raw = await callContractRead("get_support_review", [caseId]);
     const parsed = JSON.parse(raw);
-    return parsed?.error ? null : (parsed as SupportReviewResult);
+    return parsed?.error || !isSupportReviewResult(parsed) ? null : parsed;
   } catch {
     return null;
+  }
+}
+
+export function isSupportReviewResult(value: unknown): value is SupportReviewResult {
+  if (!value || typeof value !== "object") return false;
+
+  const review = value as Partial<SupportReviewResult> & { error?: unknown };
+  return (
+    !review.error &&
+    typeof review.issue_classification === "string" &&
+    typeof review.recommended_route === "string" &&
+    typeof review.risk_level === "string" &&
+    Array.isArray(review.recommended_next_actions) &&
+    typeof review.reasoning_summary === "string"
+  );
+}
+
+export async function getContractOwnerFromContract(): Promise<string> {
+  try {
+    return await callContractRead("get_owner", []);
+  } catch {
+    return "";
+  }
+}
+
+export async function getReviewerStatusFromContract(address: string): Promise<boolean> {
+  try {
+    const raw = await callContractRead("get_reviewer", [address]);
+    const parsed = JSON.parse(raw);
+    return parsed?.active === true;
+  } catch {
+    return false;
   }
 }
 
