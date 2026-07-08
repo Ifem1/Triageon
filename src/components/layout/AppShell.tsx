@@ -12,6 +12,7 @@ import { isContractConfigured } from "@/lib/genlayer/config";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
+import { ChainHydrator } from "@/components/layout/ChainHydrator";
 
 const NAV = [
   { href: "/app",            label: "Desk",     icon: LayoutDashboard, exact: true },
@@ -31,6 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--bg-shell)" }}>
+      <ChainHydrator />
 
       {/* Top command strip */}
       <header

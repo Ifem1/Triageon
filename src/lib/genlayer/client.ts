@@ -36,6 +36,33 @@ function stringifyReadResult(result: CalldataEncodable): string {
   return typeof result === "string" ? result : JSON.stringify(result);
 }
 
+function getExecutionFailure(tx: unknown): string | null {
+  const receipt = tx as {
+    consensus_data?: {
+      leader_receipt?: Array<{
+        execution_result?: string;
+        stderr?: string;
+      }>;
+    };
+  };
+
+  const leaderReceipt = receipt.consensus_data?.leader_receipt?.[0];
+  const executionResult = leaderReceipt?.execution_result;
+
+  if (!executionResult || executionResult === "SUCCESS" || executionResult === "ACCEPTED") {
+    return null;
+  }
+
+  const stderr = leaderReceipt?.stderr?.trim();
+  if (!stderr) return `Contract execution failed: ${executionResult}`;
+
+  const userError = stderr.match(/VmUserError\(['"]([^'"]+)['"]\)/);
+  if (userError?.[1]) return userError[1];
+
+  const lastLine = stderr.split("\n").filter(Boolean).at(-1);
+  return lastLine || `Contract execution failed: ${executionResult}`;
+}
+
 function getBrowserProvider(): EIP1193Provider | undefined {
   if (typeof window === "undefined") return undefined;
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -115,18 +142,24 @@ export async function callContractWrite(
 }
 
 export async function waitForTransaction(txHash: string): Promise<unknown> {
-  return getClient().waitForTransactionReceipt({
+  const tx = await getClient().waitForTransactionReceipt({
     hash: txHash as TransactionHash,
     status: TransactionStatus.ACCEPTED,
     interval: 3000,
     retries: 200,
   });
+
+  const failure = getExecutionFailure(tx);
+  if (failure) throw new Error(failure);
+
+  return tx;
 }
 
 export async function getCaseFromContract(caseId: string): Promise<SupportCase | null> {
   try {
     const raw = await callContractRead("get_case", [caseId]);
-    return JSON.parse(raw) as SupportCase;
+    const parsed = JSON.parse(raw);
+    return parsed?.error ? null : (parsed as SupportCase);
   } catch {
     return null;
   }
@@ -135,7 +168,8 @@ export async function getCaseFromContract(caseId: string): Promise<SupportCase |
 export async function getPolicyFromContract(policyId: string): Promise<PolicyPacket | null> {
   try {
     const raw = await callContractRead("get_policy_packet", [policyId]);
-    return JSON.parse(raw) as PolicyPacket;
+    const parsed = JSON.parse(raw);
+    return parsed?.error ? null : (parsed as PolicyPacket);
   } catch {
     return null;
   }
@@ -144,8 +178,19 @@ export async function getPolicyFromContract(policyId: string): Promise<PolicyPac
 export async function getReviewFromContract(caseId: string): Promise<SupportReviewResult | null> {
   try {
     const raw = await callContractRead("get_support_review", [caseId]);
-    return JSON.parse(raw) as SupportReviewResult;
+    const parsed = JSON.parse(raw);
+    return parsed?.error ? null : (parsed as SupportReviewResult);
   } catch {
     return null;
+  }
+}
+
+export async function getUserCaseIdsFromContract(address: string): Promise<string[]> {
+  try {
+    const raw = await callContractRead("get_user_cases", [address]);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
   }
 }

@@ -2,7 +2,12 @@
 
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
-import { GENLAYER_STUDIONET, isContractConfigured } from "@/lib/genlayer/config";
+import {
+  CONTRACT_OWNER_ADDRESS,
+  GENLAYER_STUDIONET,
+  isContractConfigured,
+  isContractOwner,
+} from "@/lib/genlayer/config";
 import { ContractNotice } from "@/components/ui/ContractNotice";
 import { callContractWrite, emitLog } from "@/lib/genlayer/client";
 import { useState } from "react";
@@ -14,6 +19,7 @@ export default function SettingsPage() {
   const [reviewerAddr, setReviewerAddr] = useState("");
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState("");
+  const canManageReviewers = isContractOwner(walletAddress);
 
   function saveWallet() {
     setWalletAddress(addr.trim());
@@ -69,6 +75,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Reviewers */}
+        {canManageReviewers && (
         <div className="rounded-sm p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4" style={{ color: "var(--soft-plum)" }} />
@@ -91,6 +98,24 @@ export default function SettingsPage() {
             </Button>
           </div>
         </div>
+        )}
+
+        {!canManageReviewers && (
+          <div className="rounded-sm p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-4 h-4" style={{ color: "var(--soft-plum)" }} />
+              <h2 className="font-syne text-sm font-semibold" style={{ color: "var(--text-body)" }}>Reviewer Access</h2>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-faint)" }}>
+              Reviewer management is owner-only. This wallet can request consensus reviews only after the owner authorises it.
+            </p>
+            {!CONTRACT_OWNER_ADDRESS && (
+              <p className="text-xs mt-3" style={{ color: "var(--alert-apricot)" }}>
+                Set NEXT_PUBLIC_GENLAYER_OWNER_ADDRESS in Vercel to enable owner-only reviewer controls.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* GenLayer config */}
         <div className="rounded-sm p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>

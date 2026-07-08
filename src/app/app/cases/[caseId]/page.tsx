@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { ConsensusPlateBig } from "@/components/cases/ConsensusPlateBig";
 import { WhyGenLayer } from "@/components/cases/WhyGenLayer";
 import {
-  callContractWrite, callContractRead, emitLog, waitForTransaction
+  callContractWrite, callContractRead, emitLog, getCaseFromContract, waitForTransaction
 } from "@/lib/genlayer/client";
 import { isContractConfigured } from "@/lib/genlayer/config";
 import type { SupportReviewResult } from "@/lib/genlayer/types";
@@ -18,23 +18,50 @@ import {
   Clock, User, Package, Zap
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function CaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
   const router = useRouter();
-  const { cases, updateCase, pushLog, walletAddress, walletProvider } = useStore();
+  const { cases, addCase, updateCase, pushLog, walletAddress, walletProvider } = useStore();
   const c = cases.find((x) => x.case_id === caseId);
 
   const [reviewLoading, setReviewLoading] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalAction, setFinalAction] = useState("");
   const [error, setError] = useState("");
+  const [hydrating, setHydrating] = useState(false);
+
+  useEffect(() => {
+    if (c || !isContractConfigured()) return;
+
+    let cancelled = false;
+    setHydrating(true);
+
+    async function hydrateCase() {
+      try {
+        const supportCase = await getCaseFromContract(caseId);
+        if (!cancelled && supportCase) addCase(supportCase);
+      } catch {
+        // The not-found state below remains visible when the contract cannot hydrate the case.
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
+    }
+
+    hydrateCase();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addCase, c, caseId]);
 
   if (!c) {
     return (
       <div className="p-6">
-        <p style={{ color: "var(--text-faint)" }}>Case not found: {caseId}</p>
+        <p style={{ color: "var(--text-faint)" }}>
+          {hydrating ? `Loading case ${caseId} from GenLayer...` : `Case not found: ${caseId}`}
+        </p>
       </div>
     );
   }
