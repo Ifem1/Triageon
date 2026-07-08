@@ -8,10 +8,11 @@ import {
   getCaseIdsFromContract,
   getPolicyFromContract,
   getPolicyIdsFromContract,
+  getReviewFromContract,
 } from "@/lib/genlayer/client";
 
 export function ChainHydrator() {
-  const { cases, policies, addCase, addPolicy } = useStore();
+  const { addCase, addPolicy } = useStore();
   const hydratedCases = useRef(false);
   const hydratedPolicies = useRef(false);
 
@@ -23,10 +24,9 @@ export function ChainHydrator() {
 
     async function hydratePolicies() {
       const policyIds = await getPolicyIdsFromContract();
-      const knownPolicyIds = new Set(policies.map((p) => p.policy_id));
 
       for (const policyId of policyIds) {
-        if (cancelled || knownPolicyIds.has(policyId)) continue;
+        if (cancelled) continue;
         const policy = await getPolicyFromContract(policyId);
         if (!cancelled && policy) addPolicy(policy);
       }
@@ -37,7 +37,7 @@ export function ChainHydrator() {
     return () => {
       cancelled = true;
     };
-  }, [addPolicy, policies]);
+  }, [addPolicy]);
 
   useEffect(() => {
     if (!isContractConfigured() || hydratedCases.current) return;
@@ -47,12 +47,14 @@ export function ChainHydrator() {
 
     async function hydrateCases() {
       const caseIds = await getCaseIdsFromContract();
-      const knownCaseIds = new Set(cases.map((c) => c.case_id));
 
       for (const caseId of caseIds) {
-        if (cancelled || knownCaseIds.has(caseId)) continue;
+        if (cancelled) continue;
         const supportCase = await getCaseFromContract(caseId);
-        if (!cancelled && supportCase) addCase(supportCase);
+        if (!cancelled && supportCase) {
+          const review = await getReviewFromContract(caseId);
+          addCase(review ? { ...supportCase, review_result: review } : supportCase);
+        }
       }
     }
 
@@ -61,7 +63,7 @@ export function ChainHydrator() {
     return () => {
       cancelled = true;
     };
-  }, [addCase, cases]);
+  }, [addCase]);
 
   return null;
 }
