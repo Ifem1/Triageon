@@ -47,7 +47,7 @@ const CATEGORIES: IssueClassification[] = [
 
 export default function NewCase() {
   const router = useRouter();
-  const { addCase, policies, pushLog, walletAddress } = useStore();
+  const { addCase, policies, pushLog, walletAddress, walletProvider } = useStore();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -73,7 +73,7 @@ export default function NewCase() {
     try {
       if (isContractConfigured() && walletAddress) {
         pushLog(emitLog("CASE_OPENED", `Opening case ${caseId} on-chain`));
-        const tx = await callContractWrite("open_case", [caseId, JSON.stringify(caseObj)], walletAddress);
+        const tx = await callContractWrite("open_case", [caseId, JSON.stringify(caseObj)], walletAddress, walletProvider);
         caseObj.tx_hash = tx;
         pushLog(emitLog("TX", `Transaction: ${tx}`));
       } else {

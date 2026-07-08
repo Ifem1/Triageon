@@ -23,7 +23,7 @@ import { useState } from "react";
 export default function CaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
   const router = useRouter();
-  const { cases, updateCase, pushLog, walletAddress } = useStore();
+  const { cases, updateCase, pushLog, walletAddress, walletProvider } = useStore();
   const c = cases.find((x) => x.case_id === caseId);
 
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -52,7 +52,7 @@ export default function CaseDetail() {
       pushLog(emitLog("VALIDATORS", "Policy interpretation consensus running"));
 
       if (isContractConfigured() && walletAddress) {
-        const tx = await callContractWrite("review_support_case", [caseId], walletAddress);
+        const tx = await callContractWrite("review_support_case", [caseId], walletAddress, walletProvider);
         pushLog(emitLog("TX", `Transaction submitted: ${tx}`));
         await waitForTransaction(tx);
         const raw = await callContractRead("get_support_review", [caseId]);
@@ -80,7 +80,7 @@ export default function CaseDetail() {
     try {
       const payload = { action: finalAction, finalized_at: new Date().toISOString() };
       if (isContractConfigured() && walletAddress) {
-        await callContractWrite("finalize_case", [caseId, JSON.stringify(payload)], walletAddress);
+        await callContractWrite("finalize_case", [caseId, JSON.stringify(payload)], walletAddress, walletProvider);
       }
       updateCase(caseId, { status: "FINALIZED", final_action: finalAction });
       pushLog(emitLog("ACTION", `Case ${caseId} finalized: ${finalAction}`));

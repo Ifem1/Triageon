@@ -24,7 +24,7 @@ type FormData = z.infer<typeof schema>;
 export default function Reconsideration() {
   const { caseId } = useParams<{ caseId: string }>();
   const router = useRouter();
-  const { cases, pushLog, walletAddress } = useStore();
+  const { cases, pushLog, walletAddress, walletProvider } = useStore();
   const c = cases.find((x) => x.case_id === caseId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +53,8 @@ export default function Reconsideration() {
         await callContractWrite(
           "open_reconsideration",
           [reconId, caseId, JSON.stringify(payload)],
-          walletAddress
+          walletAddress,
+          walletProvider
         );
       }
       pushLog(emitLog("RECONSIDERATION", `Reconsideration ${reconId} submitted`));

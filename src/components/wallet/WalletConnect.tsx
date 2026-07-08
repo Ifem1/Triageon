@@ -3,13 +3,13 @@
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useStore } from "@/lib/store";
 import { useEffect, useState } from "react";
-import { Wallet, ChevronDown, LogOut, Copy, Check, LogIn } from "lucide-react";
+import { ChevronDown, LogOut, Copy, Check, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function WalletConnect() {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
-  const { setWalletAddress } = useStore();
+  const { setWalletAddress, setWalletProvider } = useStore();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -18,7 +18,28 @@ export function WalletConnect() {
 
   useEffect(() => {
     setWalletAddress(address);
-  }, [address, setWalletAddress]);
+    let cancelled = false;
+
+    async function loadProvider() {
+      if (!activeWallet) {
+        setWalletProvider(null);
+        return;
+      }
+
+      try {
+        const provider = await activeWallet.getEthereumProvider();
+        if (!cancelled) setWalletProvider(provider);
+      } catch {
+        if (!cancelled) setWalletProvider(null);
+      }
+    }
+
+    loadProvider();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWallet, address, setWalletAddress, setWalletProvider]);
 
   const short = address
     ? `${address.slice(0, 6)}…${address.slice(-4)}`
@@ -102,7 +123,7 @@ export function WalletConnect() {
                 </button>
               )}
               <button
-                onClick={() => { logout(); setOpen(false); }}
+                onClick={() => { logout(); setWalletProvider(null); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-sm transition-colors"
                 style={{ color: "var(--critical-rose)" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(200,85,109,0.1)")}

@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import type { SupportCase, PolicyPacket } from "./genlayer/types";
 import type { ConsoleLog } from "./genlayer/client";
+import type { EIP1193Provider } from "@privy-io/react-auth";
 
 interface TriageonStore {
   cases: SupportCase[];
   policies: PolicyPacket[];
   consoleLogs: ConsoleLog[];
   walletAddress: string;
+  walletProvider: EIP1193Provider | null;
 
   addCase: (c: SupportCase) => void;
   updateCase: (caseId: string, patch: Partial<SupportCase>) => void;
@@ -15,6 +17,7 @@ interface TriageonStore {
   pushLog: (log: ConsoleLog) => void;
   clearLogs: () => void;
   setWalletAddress: (addr: string) => void;
+  setWalletProvider: (provider: EIP1193Provider | null) => void;
 }
 
 export const useStore = create<TriageonStore>((set) => ({
@@ -22,6 +25,7 @@ export const useStore = create<TriageonStore>((set) => ({
   policies: [],
   consoleLogs: [],
   walletAddress: "",
+  walletProvider: null,
 
   addCase: (c) => set((s) => ({ cases: [c, ...s.cases] })),
   updateCase: (caseId, patch) =>
@@ -36,4 +40,5 @@ export const useStore = create<TriageonStore>((set) => ({
   pushLog: (log) => set((s) => ({ consoleLogs: [...s.consoleLogs, log] })),
   clearLogs: () => set({ consoleLogs: [] }),
   setWalletAddress: (addr) => set({ walletAddress: addr }),
+  setWalletProvider: (provider) => set({ walletProvider: provider }),
 }));

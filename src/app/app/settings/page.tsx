@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Settings, Shield, Zap, ExternalLink } from "lucide-react";
 
 export default function SettingsPage() {
-  const { walletAddress, setWalletAddress, pushLog } = useStore();
+  const { walletAddress, walletProvider, setWalletAddress, pushLog } = useStore();
   const [addr, setAddr] = useState(walletAddress);
   const [reviewerAddr, setReviewerAddr] = useState("");
   const [adding, setAdding] = useState(false);
@@ -27,7 +27,7 @@ export default function SettingsPage() {
     setMsg("");
     try {
       if (isContractConfigured() && walletAddress) {
-        await callContractWrite("add_reviewer", [reviewerAddr.trim()], walletAddress);
+        await callContractWrite("add_reviewer", [reviewerAddr.trim()], walletAddress, walletProvider);
         pushLog(emitLog("ADMIN", `Reviewer added: ${reviewerAddr}`));
         setMsg("Reviewer added on-chain.");
       } else {

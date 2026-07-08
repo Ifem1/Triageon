@@ -27,7 +27,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function PolicyLibrary() {
-  const { policies, addPolicy, pushLog, walletAddress } = useStore();
+  const { policies, addPolicy, pushLog, walletAddress, walletProvider } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +50,7 @@ export default function PolicyLibrary() {
     try {
       if (isContractConfigured() && walletAddress) {
         pushLog(emitLog("POLICY", `Creating policy packet ${policyId}`));
-        await callContractWrite("create_policy_packet", [policyId, JSON.stringify(packet)], walletAddress);
+        await callContractWrite("create_policy_packet", [policyId, JSON.stringify(packet)], walletAddress, walletProvider);
       }
       addPolicy(packet);
       pushLog(emitLog("POLICY_ATTACHED", `Policy ${policyId} (${data.name}) created`));
