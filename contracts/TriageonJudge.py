@@ -1,4 +1,4 @@
-# v0.2.20
+# v0.2.21
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
 import json
@@ -8,6 +8,7 @@ class TriageonJudge(gl.Contract):
     owner: Address
     cases: TreeMap[str, str]
     policy_packets: TreeMap[str, str]
+    policy_ids: TreeMap[str, str]
     case_contexts: TreeMap[str, str]
     support_reviews: TreeMap[str, str]
     reconsiderations: TreeMap[str, str]
@@ -24,6 +25,7 @@ class TriageonJudge(gl.Contract):
         self.owner = gl.message.sender_address
         self.cases = TreeMap()
         self.policy_packets = TreeMap()
+        self.policy_ids = TreeMap()
         self.case_contexts = TreeMap()
         self.support_reviews = TreeMap()
         self.reconsiderations = TreeMap()
@@ -35,6 +37,7 @@ class TriageonJudge(gl.Contract):
         self.policy_count = u256(0)
         self.review_count = u256(0)
         self.paused = False
+        self.policy_ids["global"] = json.dumps([])
         self.protocol_stats["global"] = json.dumps({"total_cases": 0, "total_reviews": 0, "total_policies": 0})
 
     # ── Deterministic writes ──────────────────────────────────────────
@@ -56,6 +59,11 @@ class TriageonJudge(gl.Contract):
         if "name" not in data:
             raise gl.vm.UserError("policy_json must include 'name'.")
         self.policy_packets[policy_id] = policy_json
+        existing_ids_raw = self.policy_ids.get("global")
+        existing_ids = json.loads(existing_ids_raw) if existing_ids_raw else []
+        if policy_id not in existing_ids:
+            existing_ids.append(policy_id)
+            self.policy_ids["global"] = json.dumps(existing_ids)
         self.policy_count = u256(int(self.policy_count) + 1)
         stats = json.loads(self.protocol_stats["global"])
         stats["total_policies"] = int(stats.get("total_policies", 0)) + 1
@@ -425,6 +433,11 @@ class TriageonJudge(gl.Contract):
         if result is None:
             return json.dumps({"error": "Policy not found."})
         return result
+
+    @gl.public.view
+    def get_policy_ids(self) -> str:
+        result = self.policy_ids.get("global")
+        return result if result else json.dumps([])
 
     @gl.public.view
     def get_case_context(self, case_id: str) -> str:

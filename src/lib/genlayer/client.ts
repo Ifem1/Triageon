@@ -175,6 +175,16 @@ export async function getPolicyFromContract(policyId: string): Promise<PolicyPac
   }
 }
 
+export async function getPolicyIdsFromContract(): Promise<string[]> {
+  try {
+    const raw = await callContractRead("get_policy_ids", []);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getReviewFromContract(caseId: string): Promise<SupportReviewResult | null> {
   try {
     const raw = await callContractRead("get_support_review", [caseId]);
