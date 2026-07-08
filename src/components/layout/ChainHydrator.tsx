@@ -5,14 +5,14 @@ import { useStore } from "@/lib/store";
 import { isContractConfigured } from "@/lib/genlayer/config";
 import {
   getCaseFromContract,
+  getCaseIdsFromContract,
   getPolicyFromContract,
   getPolicyIdsFromContract,
-  getUserCaseIdsFromContract,
 } from "@/lib/genlayer/client";
 
 export function ChainHydrator() {
-  const { walletAddress, cases, policies, addCase, addPolicy } = useStore();
-  const hydratedWallet = useRef("");
+  const { cases, policies, addCase, addPolicy } = useStore();
+  const hydratedCases = useRef(false);
   const hydratedPolicies = useRef(false);
 
   useEffect(() => {
@@ -40,14 +40,13 @@ export function ChainHydrator() {
   }, [addPolicy, policies]);
 
   useEffect(() => {
-    if (!isContractConfigured() || !walletAddress) return;
-    if (hydratedWallet.current.toLowerCase() === walletAddress.toLowerCase()) return;
+    if (!isContractConfigured() || hydratedCases.current) return;
 
     let cancelled = false;
-    hydratedWallet.current = walletAddress;
+    hydratedCases.current = true;
 
     async function hydrateCases() {
-      const caseIds = await getUserCaseIdsFromContract(walletAddress);
+      const caseIds = await getCaseIdsFromContract();
       const knownCaseIds = new Set(cases.map((c) => c.case_id));
 
       for (const caseId of caseIds) {
@@ -62,7 +61,7 @@ export function ChainHydrator() {
     return () => {
       cancelled = true;
     };
-  }, [addCase, cases, walletAddress]);
+  }, [addCase, cases]);
 
   return null;
 }

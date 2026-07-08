@@ -1,4 +1,4 @@
-# v0.2.21
+# v0.2.22
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
 import json
@@ -7,6 +7,7 @@ import json
 class TriageonJudge(gl.Contract):
     owner: Address
     cases: TreeMap[str, str]
+    case_ids: TreeMap[str, str]
     policy_packets: TreeMap[str, str]
     policy_ids: TreeMap[str, str]
     case_contexts: TreeMap[str, str]
@@ -24,6 +25,7 @@ class TriageonJudge(gl.Contract):
     def __init__(self) -> None:
         self.owner = gl.message.sender_address
         self.cases = TreeMap()
+        self.case_ids = TreeMap()
         self.policy_packets = TreeMap()
         self.policy_ids = TreeMap()
         self.case_contexts = TreeMap()
@@ -37,6 +39,7 @@ class TriageonJudge(gl.Contract):
         self.policy_count = u256(0)
         self.review_count = u256(0)
         self.paused = False
+        self.case_ids["global"] = json.dumps([])
         self.policy_ids["global"] = json.dumps([])
         self.protocol_stats["global"] = json.dumps({"total_cases": 0, "total_reviews": 0, "total_policies": 0})
 
@@ -87,6 +90,11 @@ class TriageonJudge(gl.Contract):
         data["status"] = "CASE_OPENED"
         data["case_id"] = case_id
         self.cases[case_id] = json.dumps(data)
+        existing_case_ids_raw = self.case_ids.get("global")
+        existing_case_ids = json.loads(existing_case_ids_raw) if existing_case_ids_raw else []
+        if case_id not in existing_case_ids:
+            existing_case_ids.append(case_id)
+            self.case_ids["global"] = json.dumps(existing_case_ids)
         self.case_count = u256(int(self.case_count) + 1)
         sender = str(gl.message.sender_address)
         existing = self.user_cases.get(sender)
@@ -426,6 +434,11 @@ class TriageonJudge(gl.Contract):
         if result is None:
             return json.dumps({"error": "Case not found."})
         return result
+
+    @gl.public.view
+    def get_case_ids(self) -> str:
+        result = self.case_ids.get("global")
+        return result if result else json.dumps([])
 
     @gl.public.view
     def get_policy_packet(self, policy_id: str) -> str:
