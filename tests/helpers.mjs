@@ -1,7 +1,7 @@
 // helpers.mjs — shared test utilities for TriageonJudge on GenLayer Studionet
 import { createClient, createAccount, chains } from "genlayer-js";
 
-export const CONTRACT = "0xdBD61DD0c7CB54daB6355D4A33FA2daB26579611";
+export const CONTRACT = "0x17B9d11E4F0D8b3fD437De306A23fE1F92772EFC";
 export const RPC = "https://studio.genlayer.com/api";
 export const CHAIN = chains.studionet;
 

@@ -1,6 +1,6 @@
 import { createClient, createAccount, chains } from "genlayer-js";
 
-const CONTRACT = "0xdBD61DD0c7CB54daB6355D4A33FA2daB26579611";
+const CONTRACT = "0x17B9d11E4F0D8b3fD437De306A23fE1F92772EFC";
 const RPC = "https://studio.genlayer.com/api";
 
 async function addReviewer(ownerPk, reviewerPk) {

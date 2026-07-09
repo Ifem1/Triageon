@@ -38,7 +38,7 @@ Support teams get a consistent, explainable decision on every hard case. No blac
 The `TriageonJudge` contract lives on GenLayer Studionet:
 
 ```
-0xdBD61DD0c7CB54daB6355D4A33FA2daB26579611
+0x17B9d11E4F0D8b3fD437De306A23fE1F92772EFC
 ```
 
 Key functions:
@@ -71,7 +71,7 @@ Create a `.env.local` file:
 ```env
 NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
 PRIVY_APP_SECRET=your_privy_secret
-NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS=0xdBD61DD0c7CB54daB6355D4A33FA2daB26579611
+NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS=0x17B9d11E4F0D8b3fD437De306A23fE1F92772EFC
 NEXT_PUBLIC_GENLAYER_CHAIN_ID=61999
 NEXT_PUBLIC_GENLAYER_RPC_URL=https://studio.genlayer.com/api
 ```
